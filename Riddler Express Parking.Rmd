@@ -1,0 +1,51 @@
+---
+title: "Riddler Express - Parking"
+output: html_notebook
+---
+Riddler Express
+Every weekend, I drive into town for contactless curbside pickup at a local restaurant. Across the street from the restaurant are six parking spots, lined up in a row.
+
+While I can parallel park, it’s definitely not my preference. No parallel parking is required when the rearmost of the six spots is available or when there are two consecutive open spots. If there is a random arrangement of cars currently occupying four of the six spots, what’s the probability that I will have to parallel park?
+
+```{r}
+library(tidyverse)
+```
+
+Thinking -> No parallel parking required if just 6 or 1,2 or 2,3 or 3,4 or 4,5 or 5,6 are open (two consecutive spaces).  Can we simulate 6 spaces with 4 randomly parked cars and look for consecutive openings?  Each space is a binomial condition, meaning that it's either empty or full so we could approach model by sampling from a binomal distribution recursively OR we could use the sample function to draw four numbers from a vector of six choices recursively without replacement.  Then we could look for consecutively open spaces in the vector of samples or if space 6 is open.
+
+Model
+```{r}
+spaces <- 1:6
+cars <- 4
+first_space <- 1
+second_space <- 2
+last_space <- 6
+i <- 1
+outcome <- c()
+samples <- 1e5
+
+for(i in 1:samples) {
+  random_parking_model <- sample(spaces, cars, replace = FALSE) %>% sort() #randomly choose four spaces for six cars, arrange to match order of spaces
+  parking_method <- case_when(!last_space %in% random_parking_model ~ "No Parallel Parking Needed", #if last space not taken, no parallel parking
+                              !first_space %in% random_parking_model & 
+                                !second_space %in% random_parking_model ~ "No Parallel Parking Needed", #check if first two spaces are open, not captured in the diff calculation
+                              any(abs(diff(random_parking_model)) > 2) ~ "No Parallel Parking Needed", #test if two spaces are open
+                              TRUE ~ "Must Parallel Park")
+  i <- i + 1
+  outcome <- append(parking_method, outcome)
+}
+```
+
+Analysis
+```{r}
+outcome_df <- outcome %>% 
+  as_tibble() %>% 
+  rename("parking_method" = value)
+
+outcome_df %>% 
+  group_by(parking_method) %>% 
+  count(parking_method) %>% 
+  ungroup() %>% 
+  mutate(prop = n/sum(n))
+```
+
