@@ -1,0 +1,28 @@
+---
+title: "Riddler Express - Parking"
+output: html_notebook
+---
+Riddler Express
+Every weekend, I drive into town for contactless curbside pickup at a local restaurant. Across the street from the restaurant are six parking spots, lined up in a row.
+
+While I can parallel park, it’s definitely not my preference. No parallel parking is required when the rearmost of the six spots is available or when there are two consecutive open spots. If there is a random arrangement of cars currently occupying four of the six spots, what’s the probability that I will have to parallel park?
+
+Can we do this Monte Carlo simulation using the Tidy principles?
+
+```{r}
+set.seed(1975)
+parking_spaces <- 6
+trials <- 1:1e5
+simulation <- crossing(trials, parking_spaces) %>% 
+  mutate(selected_spaces = map(parking_spaces, ~ sample(., 4, replace = FALSE)),
+         selected_spaces = map(selected_spaces, ~ append(., 0)),
+         selected_spaces = map(selected_spaces, ~ sort(.)),
+         last_space_open = map_lgl(selected_spaces, ~ !any(. == 6)),
+         two_open_spaces = map_lgl(selected_spaces, ~ any(abs(diff(.)) > 2)),
+         outcome = last_space_open | two_open_spaces)
+
+simulation %>% 
+  summarize(1 - mean(outcome)) #40% of the time we will have to parallel park
+
+```
+
